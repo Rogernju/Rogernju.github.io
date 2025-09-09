@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
-<title>YT Study（iOS 安装版 · v5）</title>
+<title>YT Study（iOS 安装版 · v6）</title>
 
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#0b0d10">
@@ -12,7 +12,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
 <style>
-  /* Theme variables (follow system) */
   :root {
     --bg:#0b0d10; --panel:#12161b; --muted:#98a2b3; --text:#e6edf3; --accent:#4da3ff;
     --border:#1f2630; --danger:#ef4444;
@@ -30,8 +29,8 @@
   html, body { height: 100%; }
   body{
     margin:0;
-    padding-top: calc(var(--safe-top) + 8px); /* notch spacing */
-    font:16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif; /* >=16px to prevent iOS zoom */
+    padding-top: calc(var(--safe-top) + 8px);
+    font:16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
     background:var(--bg); color:var(--text);
   }
   header,main{max-width:1100px;margin:0 auto;padding:12px}
@@ -39,11 +38,13 @@
   .row.tight{gap:6px}
   input{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 12px;outline:0;font-size:16px}
   input[type="text"]{flex:1 1 520px}
-  input[type="number"]{width:100px}
-  button{background:var(--accent);color:#001b33;border:none;border-radius:10px;padding:10px 12px;font-weight:700;font-size:16px}
-  button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
-  button.danger{background:var(--danger);color:#2d0a0a}
-  .grid{display:grid;gap:12px;grid-template-columns:1fr}
+  input[type="number"]{width:70px} /* shorter */
+  .iconbtn{
+    width:44px;height:44px;border-radius:12px;border:1px solid var(--border);
+    background:transparent;color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;
+  }
+  .iconbtn svg{width:22px;height:22px}
+  .iconbtn.primary{ background:var(--accent); color:#001b33; border:none; }
   .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
 
   /* Sticky player */
@@ -57,25 +58,38 @@
   .item .note{width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:16px}
   .item .timebtn{padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--accent);font-weight:700;cursor:pointer;white-space:nowrap}
   .item .note-ghost{display:none;padding:8px 10px;border-radius:8px;border:1px dashed var(--border);background:transparent;color:var(--muted);font-size:14px;cursor:pointer}
-
-  /* Hide Notes toggle */
   body[data-hide-notes="1"] .item .note { display:none; }
   body[data-hide-notes="1"] .item .note-ghost { display:block; }
   body[data-hide-notes="1"] .item { grid-template-columns:auto 1fr auto; }
   .item.peek .note { display:block !important; }
   .item.peek .note-ghost { display:none !important; }
 
-  /* Floating buttons: back, add, forward (stacked) */
-  .fab{position: fixed; right: 16px; z-index: 50; width:56px; height:56px; border-radius:28px; font-size:20px;
+  /* Floating buttons: back, add, forward — horizontally aligned (left to right: back, fwd, add at far right) */
+  .fab{position: fixed; bottom: calc(var(--safe-bottom) + 16px); z-index: 50; width:56px; height:56px; border-radius:28px; font-size:20px;
        display:flex; align-items:center; justify-content:center; box-shadow:0 8px 24px rgba(0,0,0,.35);}
-  #fabAdd{ bottom: calc(var(--safe-bottom) + 16px); background:var(--accent); color:#001b33; }
-  #fabBack{ bottom: calc(var(--safe-bottom) + 16px + 56px + 12px); background:#1f2a37; color:#e2e8f0; border:1px solid var(--border);}
-  #fabFwd{ bottom: calc(var(--safe-bottom) + 16px + (56px + 12px)*2); background:#1f2a37; color:#e2e8f0; border:1px solid var(--border);}
+  #fabAdd{ right: 16px; background:var(--accent); color:#001b33; }
+  #fabFwd{ right: calc(16px + 56px + 12px); background:#1f2a37; color:#e2e8f0; border:1px solid var(--border);}
+  #fabBack{ right: calc(16px + (56px + 12px)*2); background:#1f2a37; color:#e2e8f0; border:1px solid var(--border);}
   @media (prefers-color-scheme: light){
     #fabBack,#fabFwd{ background:#eef2ff; color:#1e293b; border:1px solid #c7d2fe; }
   }
 
   .tiny{font-size:12px;color:var(--muted)}
+
+  /* History panel */
+  #historyPanel{
+    position: fixed; top: 0; right: 0; width: min(92vw, 420px); height: 100vh; background: var(--panel);
+    border-left: 1px solid var(--border); box-shadow: -8px 0 24px rgba(0,0,0,.25);
+    transform: translateX(100%); transition: transform .25s ease; z-index: 60; padding: 12px;
+    display: grid; grid-template-rows: auto 1fr auto; gap: 10px;
+  }
+  #historyPanel.open{ transform: translateX(0); }
+  #historyList{ overflow:auto; display:flex; flex-direction:column; gap:8px; }
+  .hitem{ border:1px solid var(--border); border-radius:10px; padding:8px; display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; }
+  .hmeta{font-size:12px; color: var(--muted);}
+  .hops{ display:flex; gap:6px; }
+  .chip{ padding:4px 8px; border-radius:999px; border:1px solid var(--border); font-size:12px; color: var(--muted); }
+
 </style>
 </head>
 <body>
@@ -83,11 +97,29 @@
   <div id="playerWrap"><div id="player"></div></div>
   <div class="row tight" style="margin-top:10px">
     <input id="url" type="text" placeholder="粘贴 YouTube 链接，例如 https://www.youtube.com/watch?v=dQw4w9WgXcQ" />
-    <button id="loadBtn">Load</button>
-    <label class="tiny">倒退秒数</label>
+    <button id="loadBtn" class="iconbtn primary" title="Load" aria-label="Load">
+      <!-- icon: arrow down into tray -->
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a1 1 0 0 1 1 1v8.586l2.293-2.293a1 1 0 1 1 1.414 1.414l-4.004 4.004a1 1 0 0 1-1.414 0L7.586 11.707a1 1 0 1 1 1.414-1.414L11 12.586V4a1 1 0 0 1 1-1z"/><path d="M4 15a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-3z"/></svg>
+    </button>
+
+    <span class="tiny">倒退</span>
     <input id="backseek" type="number" min="0" step="1" value="3" />
-    <button id="toggleNotes" class="ghost">隐藏备注：关</button>
-    <button id="exportMD" class="ghost">导出 Markdown</button>
+
+    <button id="toggleNotes" class="iconbtn" title="隐藏备注" aria-label="隐藏备注">
+      <!-- icon: eye off -->
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.53 2.47a.75.75 0 0 0-1.06 1.06l18 18a.75.75 0 1 0 1.06-1.06l-2.413-2.414A11.7 11.7 0 0 0 21.75 12S18 4.5 12 4.5a10.2 10.2 0 0 0-4.74 1.12L3.53 2.47zM12 6c4.799 0 7.977 4.012 8.97 6-.34.636-1.032 1.76-2.08 2.926L16.06 12.1c.115-.34.19-.7.19-1.08A4.25 4.25 0 0 0 12 6.75c-.38 0-.74.075-1.08.21L9.074 5.115A10.2 10.2 0 0 1 12 6z"/><path d="M14.905 16.944A4.25 4.25 0 0 1 7.056 9.095l1.55 1.55A2.75 2.75 0 0 0 14.355 13.4l1.55 1.55z"/></svg>
+    </button>
+
+    <button id="exportMD" class="iconbtn" title="导出 Markdown" aria-label="导出 Markdown">
+      <!-- icon: download -->
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a1 1 0 0 1 1 1v9.586l2.293-2.293 1.414 1.414-4.004 4.004a1 1 0 0 1-1.414 0L7.586 12.707l1.414-1.414L11 13.586V4a1 1 0 0 1 1-1z"/><path d="M5 18a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-1z"/></svg>
+    </button>
+
+    <button id="openHistory" class="iconbtn" title="历史" aria-label="历史">
+      <!-- icon: clock -->
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 .001 20.001A10 10 0 0 0 12 2zm1 5a1 1 0 1 0-2 0v5a1 1 0 0 0 .293.707l3 3a1 1 0 1 0 1.414-1.414L13 11.586V7z"/></svg>
+    </button>
+
     <span class="tiny">当前 <span id="curTime">0:00</span></span>
   </div>
 </header>
@@ -99,10 +131,24 @@
   </section>
 </main>
 
-<!-- Floating Buttons -->
-<button id="fabFwd" class="fab" title="快进 +5s">＋5</button>
-<button id="fabAdd" class="fab" title="记录时间点">＋</button>
-<button id="fabBack" class="fab" title="后退 -5s">−5</button>
+<!-- Floating Buttons: back | fwd | add -->
+<button id="fabBack" class="fab" title="后退 -5s" aria-label="后退 -5s">−5</button>
+<button id="fabFwd" class="fab" title="前进 +5s" aria-label="前进 +5s">＋5</button>
+<button id="fabAdd" class="fab" title="记录时间点" aria-label="记录时间点">＋</button>
+
+<!-- History Panel -->
+<aside id="historyPanel" aria-label="历史记录">
+  <div class="row">
+    <strong style="font-size:18px">历史记录</strong>
+    <span class="chip" id="histCount">0 项</span>
+    <span style="flex:1"></span>
+    <button id="closeHistory" class="iconbtn" title="关闭" aria-label="关闭">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.225 4.811 4.81 6.225 10.586 12l-5.775 5.775 1.414 1.414L12 13.414l5.775 5.775 1.414-1.414L13.414 12l5.775-5.775-1.414-1.414L12 10.586z"/></svg>
+    </button>
+  </div>
+  <div id="historyList"></div>
+  <div class="tiny">长按条目可重命名；点「打开」切换到该视频；删除不可恢复。</div>
+</aside>
 
 <script>
 /* ---------- Utils ---------- */
@@ -139,11 +185,103 @@ function onPlayerReady(){ timeTick=setInterval(()=>{ if(player && player.getCurr
 const storeKeyGlobal=k=>`ytstudy:${k}`;
 const storeKey=k=>`ytstudy:${currentVideoId}:${k}`;
 let timeMarks=[];
-function saveState(){ if(!currentVideoId) return; localStorage.setItem(storeKey('timeMarks'),JSON.stringify(timeMarks)); }
+
+function saveState(){ if(!currentVideoId) return; localStorage.setItem(storeKey('timeMarks'),JSON.stringify(timeMarks)); upsertHistoryMeta(); }
 function loadState(){ timeMarks=JSON.parse(localStorage.getItem(storeKey('timeMarks'))||'[]'); renderTimeMarks(); }
 
 function getBackseek(){ return parseInt(localStorage.getItem(storeKeyGlobal('backseek'))||'3',10) || 0; }
 function setBackseek(v){ localStorage.setItem(storeKeyGlobal('backseek'), String(Math.max(0, Math.floor(v||0)))); }
+
+/* ---------- History (localStorage index) ---------- */
+function readHistoryIndex(){
+  try{ return JSON.parse(localStorage.getItem('ytstudy:index')||'[]'); }catch(e){ return []; }
+}
+function writeHistoryIndex(arr){ localStorage.setItem('ytstudy:index', JSON.stringify(arr)); renderHistory(); }
+
+function upsertHistoryMeta(){
+  if(!currentVideoId) return;
+  const url = $('#url').value.trim() || `https://youtu.be/${currentVideoId}`;
+  const now = Date.now();
+  const idx = readHistoryIndex();
+  const i = idx.findIndex(x => x.videoId === currentVideoId);
+  const meta = { videoId: currentVideoId, url, title: (idx[i]?.title||""), createdAt: (idx[i]?.createdAt||now), updatedAt: now, count: timeMarks.length };
+  if(i>=0) idx[i] = meta; else idx.push(meta);
+  writeHistoryIndex(idx);
+}
+function deleteHistory(videoId){
+  const idx = readHistoryIndex().filter(x=>x.videoId!==videoId);
+  localStorage.removeItem(`ytstudy:${videoId}:timeMarks`);
+  writeHistoryIndex(idx);
+}
+function renameHistory(videoId, newTitle){
+  const idx = readHistoryIndex();
+  const i = idx.findIndex(x=>x.videoId===videoId);
+  if(i>=0){ idx[i].title = (newTitle||""); writeHistoryIndex(idx); }
+}
+function openHistory(videoId, url){
+  $('#url').value = url || `https://youtu.be/${videoId}`;
+  currentVideoId = videoId;
+  player.loadVideoById(videoId);
+  loadState();
+  $('#historyPanel').classList.remove('open');
+}
+
+/* Render history panel */
+function renderHistory(){
+  const list = $('#historyList');
+  const idx = readHistoryIndex().sort((a,b)=> (b.updatedAt||0) - (a.updatedAt||0));
+  $('#histCount').textContent = `${idx.length} 项`;
+  list.innerHTML = '';
+  const fmtDate = ts => {
+    try{ const d = new Date(ts); return d.toLocaleString(); }catch(e){ return ''; }
+  };
+  idx.forEach(item=>{
+    const div = document.createElement('div'); div.className='hitem';
+    const title = item.title && item.title.trim() ? item.title.trim() : (item.url || item.videoId);
+    div.innerHTML = `<div>
+        <div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${title}</div>
+        <div class="hmeta">共 ${item.count||0} 条 · 更新于 ${fmtDate(item.updatedAt)}</div>
+      </div>
+      <div class="hops">
+        <button class="iconbtn" title="打开" data-act="open" data-id="${item.videoId}" aria-label="打开">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 12a8 8 0 1 1 16 0h-2a6 6 0 1 0-6 6v-2l4 3-4 3v-2a8 8 0 0 1-8-8z"/></svg>
+        </button>
+        <button class="iconbtn" title="重命名" data-act="rename" data-id="${item.videoId}" aria-label="重命名">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm3.92 2.33H5.5v-1.42l8.06-8.06 1.42 1.42-8.06 8.06zM20.71 7.04a1.003 1.003 0 0 0 0-1.42L18.37 3.29a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.83z"/></svg>
+        </button>
+        <button class="iconbtn" title="删除" data-act="del" data-id="${item.videoId}" aria-label="删除">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 3a1 1 0 0 0-1 1v1H4v2h1v11a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3V7h1V5h-4V4a1 1 0 0 0-1-1H9zm2 4h2v11h-2V7z"/></svg>
+        </button>
+      </div>`;
+    // long press rename
+    div.addEventListener('mousedown', (e)=>{
+      let timer = setTimeout(()=>{
+        const nt = prompt('输入新标题（可留空）：', item.title||'');
+        if(nt!==null){ renameHistory(item.videoId, nt); }
+      }, 600);
+      const clear=()=>{ clearTimeout(timer); document.removeEventListener('mouseup', clear); document.removeEventListener('touchend', clear); };
+      document.addEventListener('mouseup', clear); document.addEventListener('touchend', clear);
+    }, {passive:true});
+    list.appendChild(div);
+  });
+  // ops
+  list.querySelectorAll('.hops .iconbtn').forEach(btn=>{
+    const act = btn.getAttribute('data-act');
+    const vid = btn.getAttribute('data-id');
+    btn.onclick = ()=>{
+      const item = readHistoryIndex().find(x=>x.videoId===vid);
+      if(act==='open'){ openHistory(vid, item?.url); }
+      if(act==='rename'){ const nt = prompt('输入新标题（可留空）：', item?.title||''); if(nt!==null){ renameHistory(vid, nt); } }
+      if(act==='del'){ if(confirm('确定删除该历史及其时间戳？不可恢复。')) deleteHistory(vid); }
+    };
+  });
+}
+document.getElementById('openHistory').onclick = ()=>{
+  renderHistory(); document.getElementById('historyPanel').classList.add('open');
+};
+document.getElementById('closeHistory').onclick = ()=>{
+  document.getElementById('historyPanel').classList.remove('open');
+};
 
 /* ---------- Timestamps UI ---------- */
 function renderTimeMarks(){
@@ -157,7 +295,6 @@ function renderTimeMarks(){
     box.appendChild(d);
   });
   const back = getBackseek();
-  // events
   box.querySelectorAll('button.del').forEach(btn=> btn.onclick=()=>{
     const i=+btn.getAttribute('data-i'); timeMarks.splice(i,1); renderTimeMarks(); saveState();
   });
@@ -168,13 +305,9 @@ function renderTimeMarks(){
   box.querySelectorAll('input.note').forEach(inp=> inp.oninput=()=>{
     const i=+inp.getAttribute('data-i'); if(timeMarks[i]){ timeMarks[i].label=inp.value; saveState(); }
   });
-  // peek on ghost click
   box.querySelectorAll('.note-ghost').forEach(el=> el.onclick=()=>{
-    const i=+el.getAttribute('data-i'); const item=el.closest('.item');
-    if(!item) return;
-    item.classList.add('peek');
-    // auto-hide after 6s
-    setTimeout(()=> item.classList.remove('peek'), 6000);
+    const item=el.closest('.item'); if(!item) return;
+    item.classList.add('peek'); setTimeout(()=> item.classList.remove('peek'), 6000);
   });
 }
 
@@ -194,10 +327,12 @@ $('#fabBack').onclick=()=>{ const t=(player?.getCurrentTime?.()||0)-5; player.se
 $('#fabFwd').onclick=()=>{ const t=(player?.getCurrentTime?.()||0)+5; player.seekTo(t,true); };
 
 /* ---------- Notes toggle ---------- */
+let hideNotes=false;
 $('#toggleNotes').onclick=()=>{
-  const cur = document.body.getAttribute('data-hide-notes') === '1';
-  document.body.setAttribute('data-hide-notes', cur ? '0' : '1');
-  $('#toggleNotes').textContent = (cur ? '隐藏备注：关' : '隐藏备注：开');
+  hideNotes = !hideNotes;
+  document.body.setAttribute('data-hide-notes', hideNotes ? '1' : '0');
+  // swap icon to indicate state (eye / eye-off): simple toggle by flipping innerHTML
+  $('#toggleNotes').title = hideNotes ? '显示备注' : '隐藏备注';
 };
 
 /* ---------- Backseek setting ---------- */
@@ -238,6 +373,7 @@ document.getElementById('exportMD').addEventListener('click', exportMarkdown);
 window.addEventListener('DOMContentLoaded', ()=>{
   if(!isHttp){ console.warn('请通过 HTTPS 打开，file:// 会导致播放器不可用'); }
   $('#backseek').value = getBackseek();
+  renderHistory();
 });
 </script>
 </body>
