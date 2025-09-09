@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
-<title>YT Study（iOS 安装版 · v6）</title>
+<title>YT Study（iOS 安装版 · v7）</title>
 
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#0b0d10">
@@ -38,12 +38,8 @@
   .row.tight{gap:6px}
   input{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 12px;outline:0;font-size:16px}
   input[type="text"]{flex:1 1 520px}
-  input[type="number"]{width:70px} /* shorter */
-  .iconbtn{
-    width:44px;height:44px;border-radius:12px;border:1px solid var(--border);
-    background:transparent;color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;
-  }
-  .iconbtn svg{width:22px;height:22px}
+  input[type="number"]{width:70px}
+  .iconbtn{min-width:44px;height:44px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0 10px;font-size:20px}
   .iconbtn.primary{ background:var(--accent); color:#001b33; border:none; }
   .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
 
@@ -54,7 +50,8 @@
   /* Timestamp list */
   .list{display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow:auto}
   .item{border:1px dashed var(--border);border-radius:10px;padding:8px;display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
-  .item .del{width:32px;height:32px;border-radius:16px;background:transparent;border:1px solid var(--danger);color:var(--danger);font-weight:900;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .item .del{width:32px;height:32px;border-radius:16px;background:transparent;border:1px solid var(--danger);color:var(--danger);font-weight:900;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px}
+  .item .del.confirm{ background:var(--danger); color:#fff; }
   .item .note{width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:16px}
   .item .timebtn{padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--accent);font-weight:700;cursor:pointer;white-space:nowrap}
   .item .note-ghost{display:none;padding:8px 10px;border-radius:8px;border:1px dashed var(--border);background:transparent;color:var(--muted);font-size:14px;cursor:pointer}
@@ -64,8 +61,8 @@
   .item.peek .note { display:block !important; }
   .item.peek .note-ghost { display:none !important; }
 
-  /* Floating buttons: back, add, forward — horizontally aligned (left to right: back, fwd, add at far right) */
-  .fab{position: fixed; bottom: calc(var(--safe-bottom) + 16px); z-index: 50; width:56px; height:56px; border-radius:28px; font-size:20px;
+  /* Floating buttons: back | fwd | add */
+  .fab{position: fixed; bottom: calc(var(--safe-bottom) + 16px); z-index: 50; width:56px; height:56px; border-radius:28px; font-size:22px;
        display:flex; align-items:center; justify-content:center; box-shadow:0 8px 24px rgba(0,0,0,.35);}
   #fabAdd{ right: 16px; background:var(--accent); color:#001b33; }
   #fabFwd{ right: calc(16px + 56px + 12px); background:#1f2a37; color:#e2e8f0; border:1px solid var(--border);}
@@ -82,6 +79,7 @@
     border-left: 1px solid var(--border); box-shadow: -8px 0 24px rgba(0,0,0,.25);
     transform: translateX(100%); transition: transform .25s ease; z-index: 60; padding: 12px;
     display: grid; grid-template-rows: auto 1fr auto; gap: 10px;
+    padding-top: calc(var(--safe-top) + 16px); /* notch safe space */
   }
   #historyPanel.open{ transform: translateX(0); }
   #historyList{ overflow:auto; display:flex; flex-direction:column; gap:8px; }
@@ -97,28 +95,14 @@
   <div id="playerWrap"><div id="player"></div></div>
   <div class="row tight" style="margin-top:10px">
     <input id="url" type="text" placeholder="粘贴 YouTube 链接，例如 https://www.youtube.com/watch?v=dQw4w9WgXcQ" />
-    <button id="loadBtn" class="iconbtn primary" title="Load" aria-label="Load">
-      <!-- icon: arrow down into tray -->
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a1 1 0 0 1 1 1v8.586l2.293-2.293a1 1 0 1 1 1.414 1.414l-4.004 4.004a1 1 0 0 1-1.414 0L7.586 11.707a1 1 0 1 1 1.414-1.414L11 12.586V4a1 1 0 0 1 1-1z"/><path d="M4 15a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-3z"/></svg>
-    </button>
+    <button id="loadBtn" class="iconbtn primary" title="Load" aria-label="Load">⬇️</button>
 
     <span class="tiny">倒退</span>
     <input id="backseek" type="number" min="0" step="1" value="3" />
 
-    <button id="toggleNotes" class="iconbtn" title="隐藏备注" aria-label="隐藏备注">
-      <!-- icon: eye off -->
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.53 2.47a.75.75 0 0 0-1.06 1.06l18 18a.75.75 0 1 0 1.06-1.06l-2.413-2.414A11.7 11.7 0 0 0 21.75 12S18 4.5 12 4.5a10.2 10.2 0 0 0-4.74 1.12L3.53 2.47zM12 6c4.799 0 7.977 4.012 8.97 6-.34.636-1.032 1.76-2.08 2.926L16.06 12.1c.115-.34.19-.7.19-1.08A4.25 4.25 0 0 0 12 6.75c-.38 0-.74.075-1.08.21L9.074 5.115A10.2 10.2 0 0 1 12 6z"/><path d="M14.905 16.944A4.25 4.25 0 0 1 7.056 9.095l1.55 1.55A2.75 2.75 0 0 0 14.355 13.4l1.55 1.55z"/></svg>
-    </button>
-
-    <button id="exportMD" class="iconbtn" title="导出 Markdown" aria-label="导出 Markdown">
-      <!-- icon: download -->
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a1 1 0 0 1 1 1v9.586l2.293-2.293 1.414 1.414-4.004 4.004a1 1 0 0 1-1.414 0L7.586 12.707l1.414-1.414L11 13.586V4a1 1 0 0 1 1-1z"/><path d="M5 18a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-1z"/></svg>
-    </button>
-
-    <button id="openHistory" class="iconbtn" title="历史" aria-label="历史">
-      <!-- icon: clock -->
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 .001 20.001A10 10 0 0 0 12 2zm1 5a1 1 0 1 0-2 0v5a1 1 0 0 0 .293.707l3 3a1 1 0 1 0 1.414-1.414L13 11.586V7z"/></svg>
-    </button>
+    <button id="toggleNotes" class="iconbtn" title="隐藏备注" aria-label="隐藏备注">🙈</button>
+    <button id="exportMD" class="iconbtn" title="导出 Markdown" aria-label="导出 Markdown">📝</button>
+    <button id="openHistory" class="iconbtn" title="历史" aria-label="历史">🕘</button>
 
     <span class="tiny">当前 <span id="curTime">0:00</span></span>
   </div>
@@ -132,9 +116,9 @@
 </main>
 
 <!-- Floating Buttons: back | fwd | add -->
-<button id="fabBack" class="fab" title="后退 -5s" aria-label="后退 -5s">−5</button>
-<button id="fabFwd" class="fab" title="前进 +5s" aria-label="前进 +5s">＋5</button>
-<button id="fabAdd" class="fab" title="记录时间点" aria-label="记录时间点">＋</button>
+<button id="fabBack" class="fab" title="后退 -5s" aria-label="后退 -5s">⏪</button>
+<button id="fabFwd" class="fab" title="前进 +5s" aria-label="前进 +5s">⏩</button>
+<button id="fabAdd" class="fab" title="记录时间点" aria-label="记录时间点">➕</button>
 
 <!-- History Panel -->
 <aside id="historyPanel" aria-label="历史记录">
@@ -142,12 +126,10 @@
     <strong style="font-size:18px">历史记录</strong>
     <span class="chip" id="histCount">0 项</span>
     <span style="flex:1"></span>
-    <button id="closeHistory" class="iconbtn" title="关闭" aria-label="关闭">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.225 4.811 4.81 6.225 10.586 12l-5.775 5.775 1.414 1.414L12 13.414l5.775 5.775 1.414-1.414L13.414 12l5.775-5.775-1.414-1.414L12 10.586z"/></svg>
-    </button>
+    <button id="closeHistory" class="iconbtn" title="关闭" aria-label="关闭">❌</button>
   </div>
   <div id="historyList"></div>
-  <div class="tiny">长按条目可重命名；点「打开」切换到该视频；删除不可恢复。</div>
+  <div class="tiny">提示：长按条目可重命名；点“打开”切换到该视频；删除不可恢复。</div>
 </aside>
 
 <script>
@@ -157,7 +139,28 @@ const fmtTime=s=>{s=Math.max(0,Math.floor(s||0));const h=Math.floor(s/3600),m=Ma
 const parseVideoId=u=>{try{if(!u)return'';const x=new URL(u);if(x.hostname.includes('youtu.be'))return x.pathname.slice(1);if(x.searchParams.get('v'))return x.searchParams.get('v');if(x.pathname.startsWith('/shorts/'))return x.pathname.split('/')[2]||'';return''}catch(e){return u}};
 const isHttp=location.protocol.startsWith('http');
 
-/* ---------- Clipboard ---------- */
+/* ---------- Clipboard auto-fill (best effort) ---------- */
+let clipboardTried = false;
+async function tryFillFromClipboard(){
+  if(clipboardTried) return; clipboardTried = true;
+  if(!navigator.clipboard || !isHttp) return; // needs https
+  try{
+    // Some browsers require user gesture; this function is bound to first interaction and visibilitychange as fallback.
+    const text = await navigator.clipboard.readText();
+    if(!$('#url').value && /https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//i.test(text)){
+      $('#url').value = text.trim();
+      console.log('已从剪贴板填充链接');
+    }
+  }catch(e){ /* ignore */ }
+}
+['pointerdown','keydown','focus'].forEach(ev=>{
+  window.addEventListener(ev, tryFillFromClipboard, { once:true, capture:true });
+});
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='visible') tryFillFromClipboard();
+});
+
+/* ---------- Clipboard helper ---------- */
 async function copyText(t){
   try{ if(navigator.clipboard && isHttp){ await navigator.clipboard.writeText(t); return true; } }catch(e){}
   const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta);
@@ -198,13 +201,26 @@ function readHistoryIndex(){
 }
 function writeHistoryIndex(arr){ localStorage.setItem('ytstudy:index', JSON.stringify(arr)); renderHistory(); }
 
-function upsertHistoryMeta(){
+async function fetchTitleFor(url){
+  try{
+    const o = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+    if(!o.ok) throw 0;
+    const data = await o.json();
+    return data.title || '';
+  }catch(e){ return ''; }
+}
+
+async function upsertHistoryMeta(){
   if(!currentVideoId) return;
   const url = $('#url').value.trim() || `https://youtu.be/${currentVideoId}`;
   const now = Date.now();
   const idx = readHistoryIndex();
   const i = idx.findIndex(x => x.videoId === currentVideoId);
-  const meta = { videoId: currentVideoId, url, title: (idx[i]?.title||""), createdAt: (idx[i]?.createdAt||now), updatedAt: now, count: timeMarks.length };
+  let title = (i>=0 && idx[i].title) ? idx[i].title : '';
+  if(!title){
+    title = await fetchTitleFor(url); // best effort
+  }
+  const meta = { videoId: currentVideoId, url, title, createdAt: (idx[i]?.createdAt||now), updatedAt: now, count: timeMarks.length };
   if(i>=0) idx[i] = meta; else idx.push(meta);
   writeHistoryIndex(idx);
 }
@@ -223,7 +239,7 @@ function openHistory(videoId, url){
   currentVideoId = videoId;
   player.loadVideoById(videoId);
   loadState();
-  $('#historyPanel').classList.remove('open');
+  document.getElementById('historyPanel').classList.remove('open');
 }
 
 /* Render history panel */
@@ -232,28 +248,20 @@ function renderHistory(){
   const idx = readHistoryIndex().sort((a,b)=> (b.updatedAt||0) - (a.updatedAt||0));
   $('#histCount').textContent = `${idx.length} 项`;
   list.innerHTML = '';
-  const fmtDate = ts => {
-    try{ const d = new Date(ts); return d.toLocaleString(); }catch(e){ return ''; }
-  };
+  const fmtDate = ts => { try{ const d = new Date(ts); return d.toLocaleString(); }catch(e){ return ''; } };
   idx.forEach(item=>{
     const div = document.createElement('div'); div.className='hitem';
-    const title = item.title && item.title.trim() ? item.title.trim() : (item.url || item.videoId);
+    const title = (item.title && item.title.trim()) ? item.title.trim() : (item.url || item.videoId);
     div.innerHTML = `<div>
         <div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${title}</div>
         <div class="hmeta">共 ${item.count||0} 条 · 更新于 ${fmtDate(item.updatedAt)}</div>
       </div>
       <div class="hops">
-        <button class="iconbtn" title="打开" data-act="open" data-id="${item.videoId}" aria-label="打开">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 12a8 8 0 1 1 16 0h-2a6 6 0 1 0-6 6v-2l4 3-4 3v-2a8 8 0 0 1-8-8z"/></svg>
-        </button>
-        <button class="iconbtn" title="重命名" data-act="rename" data-id="${item.videoId}" aria-label="重命名">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm3.92 2.33H5.5v-1.42l8.06-8.06 1.42 1.42-8.06 8.06zM20.71 7.04a1.003 1.003 0 0 0 0-1.42L18.37 3.29a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.83z"/></svg>
-        </button>
-        <button class="iconbtn" title="删除" data-act="del" data-id="${item.videoId}" aria-label="删除">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 3a1 1 0 0 0-1 1v1H4v2h1v11a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3V7h1V5h-4V4a1 1 0 0 0-1-1H9zm2 4h2v11h-2V7z"/></svg>
-        </button>
+        <button class="iconbtn" title="打开" data-act="open" data-id="${item.videoId}" aria-label="打开">📺</button>
+        <button class="iconbtn" title="重命名" data-act="rename" data-id="${item.videoId}" aria-label="重命名">✏️</button>
+        <button class="iconbtn" title="删除" data-act="del" data-id="${item.videoId}" aria-label="删除">🗑️</button>
       </div>`;
-    // long press rename
+    // long press rename quick
     div.addEventListener('mousedown', (e)=>{
       let timer = setTimeout(()=>{
         const nt = prompt('输入新标题（可留空）：', item.title||'');
@@ -283,20 +291,32 @@ document.getElementById('closeHistory').onclick = ()=>{
   document.getElementById('historyPanel').classList.remove('open');
 };
 
-/* ---------- Timestamps UI ---------- */
+/* ---------- Timestamps UI with two-tap delete ---------- */
+const tapConfirmMap = new Map(); // i -> timeoutId
 function renderTimeMarks(){
   const box=$('#timeList'); box.innerHTML='';
   timeMarks.sort((a,b)=>a.t-b.t).forEach((m,i)=>{
     const d=document.createElement('div'); d.className='item';
-    d.innerHTML=`<button class="del" data-i="${i}" title="删除">×</button>
+    d.innerHTML=`<button class="del" data-i="${i}" title="删除">❌</button>
       <input class="note" data-i="${i}" value="${(m.label||'').replace(/"/g,'&quot;')}" placeholder="备注（可编辑）" />
       <div class="note-ghost" data-i="${i}">（备注已隐藏，轻点显示）</div>
-      <button class="timebtn" data-i="${i}">${fmtTime(m.t)}</button>`;
+      <button class="timebtn" data-i="${i}">⏱ ${fmtTime(m.t)}</button>`;
     box.appendChild(d);
   });
   const back = getBackseek();
   box.querySelectorAll('button.del').forEach(btn=> btn.onclick=()=>{
-    const i=+btn.getAttribute('data-i'); timeMarks.splice(i,1); renderTimeMarks(); saveState();
+    const i=+btn.getAttribute('data-i');
+    if(tapConfirmMap.has(i)){
+      clearTimeout(tapConfirmMap.get(i)); tapConfirmMap.delete(i);
+      timeMarks.splice(i,1); renderTimeMarks(); saveState();
+    } else {
+      btn.classList.add('confirm');
+      btn.textContent='❗';
+      const tid = setTimeout(()=>{
+        btn.classList.remove('confirm'); btn.textContent='❌'; tapConfirmMap.delete(i);
+      }, 2500);
+      tapConfirmMap.set(i, tid);
+    }
   });
   box.querySelectorAll('button.timebtn').forEach(btn=> btn.onclick=()=>{
     const i=+btn.getAttribute('data-i'); const m=timeMarks[i]; if(!m) return;
@@ -312,13 +332,14 @@ function renderTimeMarks(){
 }
 
 /* ---------- Load video ---------- */
-$('#loadBtn').onclick=()=>{
+async function doLoad(){
   const id=parseVideoId($('#url').value.trim()); if(!id){ alert('请粘贴有效的链接'); return; }
   currentVideoId=id;
   player.loadVideoById(id);
   timeMarks=[]; renderTimeMarks(); saveState(); loadState();
   $('#backseek').value = getBackseek();
-};
+}
+document.getElementById('loadBtn').onclick=doLoad;
 
 /* ---------- FABs ---------- */
 function addTimestamp(){ const t=Math.floor(player?.getCurrentTime?.()||0); timeMarks.push({t,label:''}); renderTimeMarks(); saveState(); }
@@ -331,7 +352,7 @@ let hideNotes=false;
 $('#toggleNotes').onclick=()=>{
   hideNotes = !hideNotes;
   document.body.setAttribute('data-hide-notes', hideNotes ? '1' : '0');
-  // swap icon to indicate state (eye / eye-off): simple toggle by flipping innerHTML
+  $('#toggleNotes').textContent = hideNotes ? '👀' : '🙈';
   $('#toggleNotes').title = hideNotes ? '显示备注' : '隐藏备注';
 };
 
