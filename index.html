@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>YouTube 听力练习（iOS 安装版，无离线）</title>
+
+<!-- iOS / Install as standalone -->
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#0b0d10">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<style>
+  :root { --bg:#0b0d10; --panel:#12161b; --muted:#98a2b3; --text:#e6edf3; --accent:#4da3ff;
+          --border:#1f2630; --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444; }
+  *{box-sizing:border-box} body{margin:0;font:14px/1.5 -apple-system,system-ui,Segoe UI,Roboto,PingFang SC,Microsoft YaHei,sans-serif;background:var(--bg);color:var(--text)}
+  header,main{max-width:1200px;margin:0 auto;padding:12px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  input,select,textarea{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 12px;outline:0}
+  input[type="text"]{flex:1 1 420px}
+  button{background:var(--accent);color:#001b33;border:none;border-radius:10px;padding:10px 12px;font-weight:600}
+  button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+  button.muted{background:#222b36;color:#cbd5e1;border:1px solid #2b3643}
+  button.warn{background:var(--warn);color:#160f00}
+  button.ok{background:var(--ok);color:#001507}
+  button.danger{background:var(--danger);color:#2d0a0a}
+  .tag{display:inline-block;font-size:12px;padding:2px 6px;border:1px solid #2b3643;border-radius:999px;color:#cbd5e1}
+  .grid{display:grid;gap:12px;grid-template-columns:1fr}
+  @media(min-width:1000px){.grid{grid-template-columns:1.2fr .8fr}}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
+  #playerWrap{aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden;position:relative}
+  .pill{padding:6px 10px;border-radius:999px;background:#0f1720;border:1px solid #263142;color:#b9c3d0}
+  .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+  .list{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow:auto}
+  .item{border:1px dashed #2c3440;border-radius:10px;padding:8px;display:grid;gap:6px}
+  .time{font-weight:700;color:var(--accent);cursor:pointer}
+  #transcript{background:#0e1318;border:1px solid var(--border);border-radius:12px;padding:10px;max-height:420px;overflow:auto;line-height:1.6;-webkit-user-select:text}
+  .seg{padding:6px 8px;border-radius:8px} .seg:hover{background:#101821}
+  .seg .t{color:#8ab4ff;margin-right:6px;cursor:pointer;font-variant-numeric:tabular-nums}
+  .w{display:inline-block;margin:0 2px 4px 0;padding:2px 6px;border-radius:8px;border:1px solid #263142;background:#0f1720;cursor:pointer;user-select:none}
+  .w.sel{outline:2px solid #8ab4ff}
+  .tiny{font-size:12px;color:var(--muted)}
+  .banner{background:#1b2533;border:1px solid #2d3a4c;color:#d7e3f4;padding:8px 10px;border-radius:10px;margin:8px 0}
+</style>
+</head>
+<body>
+<header class="card">
+  <h2 style="margin:0 0 6px 0;">YouTube 听力练习 <span class="tag">iOS 安装版（无离线）</span></h2>
+  <div id="fileWarn" class="banner" style="display:none">
+    建议从 <b>https</b> 打开（GitHub Pages 默认），不要用 <code>file://</code>，否则 YouTube 播放器无法工作。
+  </div>
+  <div class="row">
+    <input id="url" type="text" placeholder="粘贴 YouTube 链接，例如 https://www.youtube.com/watch?v=dQw4w9WgXcQ" />
+    <button id="loadBtn">Load</button>
+    <select id="lang">
+      <option value="en">字幕语言：en</option><option value="zh">zh</option><option value="ja">ja</option>
+      <option value="auto">尝试自动</option>
+    </select>
+    <button id="fetchCap" class="ghost">抓取字幕</button>
+    <button id="pasteCap" class="muted">粘贴字幕</button>
+    <input id="fileCap" type="file" accept=".srt,.vtt" />
+    <button id="toggleTap" class="warn">Tap 选词模式：关</button>
+  </div>
+  <div class="tiny">在手机上建议开启「Tap 选词模式」：字幕会拆成可点击小块，轻点即可加入生词。</div>
+</header>
+
+<main class="grid">
+  <section class="card">
+    <h3>播放器</h3>
+    <div id="playerWrap"><div id="player"></div></div>
+    <div class="row" style="margin-top:10px;flex-wrap:wrap">
+      <button id="addMark">+ 时间点</button>
+      <button id="jumpBack" class="muted">⟲ -5s</button>
+      <button id="jumpFwd" class="muted">⟲ +5s</button>
+      <span class="pill mono">当前：<span id="curTime">0:00</span></span>
+      <span class="pill mono">视频ID：<span id="vidLabel">-</span></span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px">
+      <div>
+        <h3>字幕（支持拖选 & 点选）</h3>
+        <div id="transcript">加载后显示字幕…</div>
+        <div class="tiny">点时间戳可跳播。Tap 模式下轻点词块即可加入生词（再次点击取消选择）。</div>
+      </div>
+      <div>
+        <h3>非时间轴版本（干净文本）</h3>
+        <textarea id="plain" rows="10" placeholder="这里会显示去时间轴后的纯文本，可复制做精读。"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <aside class="card">
+    <h3>学习清单</h3>
+    <div class="row" style="margin-bottom:8px">
+      <button id="exportCSV" class="ghost">导出 CSV</button>
+      <button id="exportJSON" class="ghost">导出 JSON</button>
+      <button id="exportMD">导出 Markdown</button>
+      <button id="copyAll" class="muted">复制到剪贴板</button>
+      <button id="clearAll" class="danger">清空</button>
+    </div>
+    <div class="list" id="studyList"></div>
+    <h3 style="margin-top:14px">时间点</h3>
+    <div class="list" id="timeList"></div>
+  </aside>
+</main>
+
+<script>
+/* ---------- 工具 ---------- */
+const $=s=>document.querySelector(s);
+const fmtTime=s=>{s=Math.max(0,Math.floor(s||0));const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return (h?(h+':'):'')+(h?String(m).padStart(2,'0'):m)+':'+String(sec).padStart(2,'0')};
+const parseVideoId=u=>{try{if(!u)return'';const x=new URL(u);if(x.hostname.includes('youtu.be'))return x.pathname.slice(1);if(x.searchParams.get('v'))return x.searchParams.get('v');if(x.pathname.startsWith('/shorts/'))return x.pathname.split('/')[2]||'';return''}catch(e){return u}};
+const isHttp=location.protocol.startsWith('http'); if(!isHttp) $('#fileWarn').style.display='block';
+
+// 复制（含 iOS 兜底）
+async function copyText(t){
+  try{
+    if(navigator.clipboard && isHttp){ await navigator.clipboard.writeText(t); return true; }
+  }catch(e){}
+  const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.focus(); ta.select();
+  const ok=document.execCommand('copy'); document.body.removeChild(ta); return ok;
+}
+
+/* ---------- YouTube IFrame API ---------- */
+let player, currentVideoId='', timeTick;
+function onYouTubeIframeAPIReady(){
+  player=new YT.Player('player',{
+    width:'100%',height:'100%',
+    videoId:'',
+    playerVars:{ playsinline:1, cc_load_policy:1, enablejsapi:1, origin: isHttp?location.origin:undefined },
+    events:{ onReady:onPlayerReady }
+  });
+}
+function onPlayerReady(){
+  timeTick=setInterval(()=>{ if(player && player.getCurrentTime){ $('#curTime').textContent=fmtTime(player.getCurrentTime()); }},300);
+}
+(function loadYT(){ const s=document.createElement('script'); s.src="https://www.youtube.com/iframe_api"; document.head.appendChild(s); })();
+
+/* ---------- 状态 ---------- */
+const storeKey=k=>`ytstudy:${currentVideoId}:${k}`;
+let timeMarks=[], vocabList=[], tapMode=false;
+function saveState(){ if(!currentVideoId) return; localStorage.setItem(storeKey('timeMarks'),JSON.stringify(timeMarks)); localStorage.setItem(storeKey('vocab'),JSON.stringify(vocabList)); localStorage.setItem(storeKey('plain'),$('#plain').value||''); }
+function loadState(){ timeMarks=JSON.parse(localStorage.getItem(storeKey('timeMarks'))||'[]'); vocabList=JSON.parse(localStorage.getItem(storeKey('vocab'))||'[]'); const p=localStorage.getItem(storeKey('plain')); if(p!==null) $('#plain').value=p; renderTimeMarks(); renderVocab(); }
+
+/* ---------- 时间点 ---------- */
+function renderTimeMarks(){
+  const box=$('#timeList'); box.innerHTML='';
+  timeMarks.sort((a,b)=>a.t-b.t).forEach((m,i)=>{
+    const d=document.createElement('div'); d.className='item';
+    d.innerHTML=`<div class="row"><span class="time" data-i="${i}">⏱ ${fmtTime(m.t)}</span>
+      <button data-i="${i}" class="muted small">播放</button><button data-i="${i}" class="danger small">删除</button></div>
+      <input class="note" data-i="${i}" value="${(m.label||'').replace(/"/g,'&quot;')}" placeholder="备注，可编辑"/>`;
+    box.appendChild(d);
+  });
+  box.querySelectorAll('span.time,button.small').forEach(el=> el.onclick=()=>{
+    const i=+el.getAttribute('data-i'); const m=timeMarks[i]; if(!m) return;
+    if(el.tagName==='SPAN'||el.textContent.includes('播放')){ player&&player.seekTo&&player.seekTo(m.t,true); player&&player.playVideo&&player.playVideo(); }
+    else if(el.textContent.includes('删除')){ timeMarks.splice(i,1); renderTimeMarks(); saveState(); }
+  });
+  box.querySelectorAll('input.note').forEach(inp=> inp.oninput=()=>{ const i=+inp.getAttribute('data-i'); if(timeMarks[i]){ timeMarks[i].label=inp.value; saveState(); }});
+}
+
+/* ---------- 生词 ---------- */
+function renderVocab(){
+  const box=$('#studyList'); box.innerHTML='';
+  vocabList.forEach((v,i)=>{
+    const d=document.createElement('div'); d.className='item';
+    d.innerHTML=`<div class="row" style="justify-content:space-between;"><strong>${v.term}</strong><span class="time" data-i="${i}">⏱ ${fmtTime(v.t||0)}</span></div>
+    <textarea class="note" rows="2" data-i="${i}" placeholder="备注（释义/搭配/例句等）">${v.note||''}</textarea>
+    <div class="tiny">上下文：${v.context||''}</div>
+    <div class="row"><button class="muted" data-i="${i}" data-act="play">播放该句</button><button class="ghost" data-i="${i}" data-act="copy">复制词条</button><button class="danger" data-i="${i}" data-act="del">删除</button></div>`;
+    box.appendChild(d);
+  });
+  box.querySelectorAll('button').forEach(btn=> btn.onclick=async ()=>{
+    const i=+btn.getAttribute('data-i'); const act=btn.getAttribute('data-act'); const v=vocabList[i]; if(!v) return;
+    if(act==='del'){ vocabList.splice(i,1); renderVocab(); saveState(); }
+    if(act==='play'){ if(typeof v.t==='number'){ player.seekTo(v.t,true); player.playVideo(); } }
+    if(act==='copy'){ const line=`${v.term}\t${v.context||''}\t${fmtTime(v.t||0)}`; await copyText(line); btn.textContent='已复制'; setTimeout(()=>btn.textContent='复制词条',1200); }
+  });
+  box.querySelectorAll('textarea.note').forEach(ta=> ta.oninput=()=>{ const i=+ta.getAttribute('data-i'); if(vocabList[i]){ vocabList[i].note=ta.value; saveState(); }});
+}
+
+/* ---------- 加载视频 ---------- */
+$('#loadBtn').onclick=()=>{
+  const id=parseVideoId($('#url').value.trim()); if(!id){ alert('请粘贴有效的链接'); return; }
+  currentVideoId=id; $('#vidLabel').textContent=id;
+  player.loadVideoById(id); // 在线使用，无离线缓存
+  timeMarks=[]; vocabList=[]; $('#transcript').textContent='尝试加载字幕…'; $('#plain').value='';
+  loadState();
+};
+
+/* ---------- 控制 ---------- */
+// 一键记录时间戳（无弹窗，不打断播放）
+$('#addMark').onclick=()=>{
+  const t=Math.floor(player?.getCurrentTime?.()||0);
+  timeMarks.push({t, label:''}); renderTimeMarks(); saveState();
+};
+$('#jumpBack').onclick=()=>{ const t=(player?.getCurrentTime?.()||0)-5; player.seekTo(Math.max(0,t),true); };
+$('#jumpFwd').onclick=()=>{ const t=(player?.getCurrentTime?.()||0)+5; player.seekTo(t,true); };
+
+/* ---------- 字幕 ---------- */
+let segments=[]; // {t,text}
+function renderTranscript(){
+  const box=$('#transcript'); box.innerHTML='';
+  if(!segments.length){ box.textContent='未获取到字幕。可尝试切语言、粘贴或上传字幕。'; return; }
+  segments.forEach(s=>{
+    const d=document.createElement('div'); d.className='seg';
+    d.innerHTML=`<span class="t" data-t="${s.t}">${fmtTime(s.t)}</span><span class="line"></span>`;
+    d.querySelector('.t').onclick=()=>{ player.seekTo(s.t,true); player.playVideo(); };
+    const line=d.querySelector('.line');
+    if(tapMode){ wrapTokens(line,s.text,s.t); } else { line.textContent=s.text; }
+    box.appendChild(d);
+  });
+  $('#plain').value=segments.map(s=>s.text).join('\n'); saveState();
+}
+function wrapTokens(container,text,t){
+  const parts=text.split(/(\b[\w'’\-]+\b)/);
+  parts.forEach(p=>{
+    if(/^\b[\w'’\-]+\b$/.test(p)){
+      const w=document.createElement('button'); w.type='button'; w.className='w'; w.textContent=p;
+      w.onclick=()=>{
+        w.classList.toggle('sel');
+        const useContext=confirm('加入生词？确定=含整句上下文，取消=仅单词');
+        vocabList.push({ term:p, context: useContext? text : '', t }); renderVocab(); saveState();
+        setTimeout(()=>w.classList.remove('sel'),400);
+      };
+      container.appendChild(w);
+    }else{
+      const span=document.createElement('span'); span.textContent=p; container.appendChild(span);
+    }
+  });
+}
+function vttToSegments(vtt){
+  const lines=vtt.replace(/\r/g,'').split('\n'); const out=[]; let ts=null, buf=[];
+  const toSec=ts=>{ const m=ts.match(/(\d+):(\d+):(\d+)\.(\d+)/)||ts.match(/(\d+):(\d+)\.(\d+)/); if(!m) return 0; return m.length===5?(+m[1])*3600+(+m[2])*60+(+m[3]):(+m[1])*60+(+m[2]); };
+  for(const ln of lines){
+    if(ln.includes('-->')){ ts=toSec(ln.split('-->')[0].trim()); continue; }
+    if(!ln.trim()){ if(ts!==null && buf.length){ out.push({t:ts,text:buf.join(' ').replace(/\s+/g,' ').trim()}); } ts=null; buf=[]; }
+    else if(!/^\d+$/.test(ln.trim())) buf.push(ln.trim());
+  }
+  if(ts!==null && buf.length) out.push({t:ts,text:buf.join(' ').replace(/\s+/g,' ').trim()});
+  return out;
+}
+function xmlToSegments(xmlText){
+  const parser=new DOMParser(); const xml=parser.parseFromString(xmlText,'text/xml');
+  const ps=[...xml.getElementsByTagName('text')]; if(!ps.length) return [];
+  return ps.map(n=>({ t:Math.floor(parseFloat(n.getAttribute('start')||'0')), text:n.textContent.replace(/\s+/g,' ').trim() })).filter(s=>s.text);
+}
+async function fetchText(url){ const r=await fetch(url); if(!r.ok) throw new Error(r.status); return r.text(); }
+async function tryFetchCaptions(id,lang){
+  const tests=[
+    `https://www.youtube.com/api/timedtext?lang=${lang}&v=${id}&fmt=vtt`,
+    `https://www.youtube.com/api/timedtext?lang=${lang}&v=${id}`,
+    `https://www.youtube.com/api/timedtext?lang=${lang}&v=${id}&kind=asr&fmt=vtt`,
+    `https://video.google.com/timedtext?lang=${lang}&v=${id}`,
+  ];
+  for(const u of tests){
+    try{
+      const txt=await fetchText(u);
+      if(txt.trim().startsWith('WEBVTT')){ const segs=vttToSegments(txt); if(segs.length) return segs; }
+      if(txt.includes('<transcript>')||txt.includes('<text')){ const segs=xmlToSegments(txt); if(segs.length) return segs; }
+    }catch(e){}
+  }
+  throw new Error('抓取失败');
+}
+$('#fetchCap').onclick=async ()=>{
+  const id=currentVideoId||parseVideoId($('#url').value.trim()); if(!id){ alert('请先加载视频'); return; }
+  const L=$('#lang').value; $('#transcript').textContent='抓取中…';
+  try{
+    segments = (L==='auto')
+      ? (await (async()=>{ for(const x of ['en','zh','ja','es','de','fr','id','vi']){ try{ const s=await tryFetchCaptions(id,x); if(s?.length) return s; }catch(e){} } return []; })())
+      : await tryFetchCaptions(id,L);
+    if(!segments.length) throw 0;
+    renderTranscript();
+  }catch(e){ $('#transcript').textContent='字幕抓取失败。请更换语言，或粘贴/上传字幕。'; }
+};
+/* 粘贴/上传 */
+$('#pasteCap').onclick=()=>{ const txt=prompt('粘贴 .srt / .vtt / 纯文本：',''); if(!txt) return; loadCaptionFromText(txt); };
+$('#fileCap').onchange=async e=>{ const f=e.target.files?.[0]; if(!f) return; const txt=await f.text(); loadCaptionFromText(txt); e.target.value=''; };
+function toVtt(srt){ const s=srt.replace(/\r/g,'').split('\n').map(l=> l.match(/^\d\d:\d\d:\d\d,\d{3}\s-->\s\d\d:\d\d:\d\d,\d{3}$/)? l.replace(/,/g,'.'): l).join('\n'); return 'WEBVTT\n\n'+s; }
+function loadCaptionFromText(txt){
+  let segs=[]; if(txt.trim().startsWith('WEBVTT')) segs=vttToSegments(txt);
+  else if(txt.includes('-->')) segs=vttToSegments(toVtt(txt));
+  else { const lines=txt.split('\n').map(s=>s.trim()).filter(Boolean); let t=0; segs=lines.map(line=>({t:(t+=3),text:line})); }
+  if(!segs.length){ alert('无法解析字幕'); return; }
+  segments=segs; renderTranscript();
+}
+
+/* ---------- Tap 模式 ---------- */
+$('#toggleTap').onclick=()=>{
+  tapMode=!tapMode; $('#toggleTap').textContent=`Tap 选词模式：${tapMode?'开':'关'}`;
+  if(segments.length) renderTranscript();
+};
+
+/* ---------- Markdown 导出 ---------- */
+function mdEscape(s=''){ return String(s).replace(/\|/g,'\\|').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function youtubeJumpUrl(id, sec){ return `https://youtu.be/${id}?t=${sec}`; }
+function buildMarkdown(){
+  const vid = currentVideoId || parseVideoId(document.getElementById('url').value.trim()) || 'video';
+  const videoUrl = document.getElementById('url').value.trim() || `https://youtu.be/${vid}`;
+  const nowISO = new Date().toISOString().slice(0,10);
+  let md = `# YouTube 听力练习：${vid}\n\n`;
+  md += `- **日期**：${nowISO}\n`;
+  md += `- **视频链接**：${videoUrl}\n\n`;
+  const sortedMarks = [...timeMarks].sort((a,b)=>a.t-b.t);
+  md += `## 时间点（可点击回放）\n`;
+  md += (sortedMarks.length? sortedMarks.map(m=>{
+      const ts = fmtTime(m.t); const link = youtubeJumpUrl(vid, m.t); const note = m.label ? f" — {mdEscape(m.label)}" : "";
+      return `- [${ts}](${link})${note}`; }).join('\n') : `> 暂无时间点`) + '\n\n';
+  md += `## 生词清单\n`;
+  if(vocabList.length){
+    md += `| 术语 | 上下文 | 时间 | 备注 |\n|---|---|---:|---|\n`;
+    vocabList.forEach(v=>{ md += `| ${mdEscape(v.term)} | ${mdEscape(v.context||'')} | ${fmtTime(v.t||0)} | ${mdEscape(v.note||'')} |\n`; });
+    md += `\n`;
+  } else { md += `> 暂无生词\n\n`; }
+  md += `## 字幕全文\n`;
+  if (typeof segments !== 'undefined' && segments.length){
+    md += segments.map(s=>`> [${fmtTime(s.t)}] ${mdEscape(s.text)}`).join('\n') + '\n\n';
+  } else {
+    const plain = document.getElementById('plain').value || '';
+    md += (plain.trim()? '```\n'+plain+'\n```\n\n' : `> 暂无可导出的字幕内容\n\n`);
+  }
+  md += `---\n*导出自 YT Study（一键 Markdown 导出）*\n`;
+  return md;
+}
+async function exportMarkdown(){
+  const md = buildMarkdown();
+  const ok = await copyText(md);
+  const vid = currentVideoId || parseVideoId(document.getElementById('url').value.trim()) || 'video';
+  const blob = new Blob([md], {type:'text/markdown;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${vid}_study.md`; a.click(); URL.revokeObjectURL(a.href);
+  if (ok) { console.log('Markdown 已复制到剪贴板并下载'); }
+}
+document.getElementById('exportMD').addEventListener('click', exportMarkdown);
+
+/* ---------- 复制/导出/清空（保留） ---------- */
+$('#exportCSV').onclick=()=>{
+  const rows=[['term','context','time','note']];
+  vocabList.forEach(v=>rows.push([v.term,v.context||'',fmtTime(v.t||0),v.note||'']));
+  timeMarks.forEach(m=>rows.push([`[TIMEMARK] ${fmtTime(m.t)}`,m.label||'',fmtTime(m.t),'']));
+  const csv=rows.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download=(currentVideoId||'video')+'_study.csv'; a.click(); URL.revokeObjectURL(a.href);
+};
+$('#exportJSON').onclick=()=>{
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify({videoId:currentVideoId,vocab:vocabList,timeMarks},null,2)],{type:'application/json'})); a.download=(currentVideoId||'video')+'_study.json'; a.click(); URL.revokeObjectURL(a.href);
+};
+$('#copyAll').onclick=async ()=>{
+  const md = (typeof buildMarkdown==='function') ? buildMarkdown() : '';
+  const ok=await copyText(md || ''); if(ok) alert('已复制到剪贴板');
+};
+$('#clearAll').onclick=()=>{ if(!confirm('确定清空当前视频的学习数据？')) return; timeMarks=[]; vocabList=[]; renderTimeMarks(); renderVocab(); saveState(); };
+
+window.addEventListener('beforeunload',saveState);
+</script>
+</body>
+</html>
