@@ -306,7 +306,7 @@ function buildMarkdown(){
   const sortedMarks = [...timeMarks].sort((a,b)=>a.t-b.t);
   md += `## 时间点（可点击回放）\n`;
   md += (sortedMarks.length? sortedMarks.map(m=>{
-      const ts = fmtTime(m.t); const link = youtubeJumpUrl(vid, m.t); const note = m.label ? f" — {mdEscape(m.label)}" : "";
+      const ts = fmtTime(m.t); const link = youtubeJumpUrl(vid, m.t); const note = m.label ? (" — " + mdEscape(m.label)) : "";
       return `- [${ts}](${link})${note}`; }).join('\n') : `> 暂无时间点`) + '\n\n';
   md += `## 生词清单\n`;
   if(vocabList.length){
