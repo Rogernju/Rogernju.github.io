@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>YouTube 听力标注与词组学习（单页版）</title>
+<style>
+  :root{
+    --bg:#0b0c0f; --card:#151821; --muted:#A0A4AE; --text:#EDEEF1; --accent:#6AA8FF; --line:#232735;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,Segoe UI,Roboto,Helvetica,Arial}
+  header{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  header input[type="url"], header input[type="text"]{flex:1;min-width:280px;padding:10px 12px;background:#0f1220;color:var(--text);border:1px solid var(--line);border-radius:8px}
+  header button, .btn{padding:10px 14px;border:1px solid var(--line);background:#1d2230;color:var(--text);border-radius:8px;cursor:pointer}
+  header button:hover, .btn:hover{background:#252b3d}
+  .pill{padding:6px 10px;border-radius:99px;background:#1b2030;border:1px solid var(--line);font-size:12px;color:var(--muted)}
+  main{display:grid;grid-template-columns: 1.4fr 1fr;gap:16px;padding:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .card header{padding:10px 12px;border-bottom:1px solid var(--line);font-weight:600;background:#121522}
+  .card .content{padding:12px}
+  #playerWrap{aspect-ratio:16/9;background:#0e1120;display:grid;place-items:center}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .row > *{margin:4px 0}
+  .small{font-size:12px;color:var(--muted)}
+  textarea, .mono{width:100%;min-height:120px;background:#0f1220;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:10px 12px;resize:vertical;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+  .segments{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+  .seg{padding:8px 10px;border-bottom:1px dashed #20263a;cursor:text}
+  .seg:hover{background:#11162a}
+  .seg .ts{font-size:12px;color:var(--muted);margin-right:6px}
+  .highlight{background:rgba(255,238,88,.25);border-bottom:1px solid #ffee58}
+  table{width:100%;border-collapse:collapse}
+  th, td{border-bottom:1px solid var(--line);padding:8px 10px;vertical-align:top}
+  th{position:sticky;top:0;background:#121522;text-align:left}
+  .tag{display:inline-block;padding:2px 6px;border:1px solid var(--line);border-radius:6px;margin-right:6px;color:var(--muted);font-size:12px}
+  .right{margin-left:auto}
+  .kbd{padding:0 6px;border:1px solid var(--line);border-radius:6px;background:#101426;color:var(--muted);font-size:12px}
+  .danger{border-color:#5a1e2a;background:#2b121a}
+  .success{border-color:#1e5a34;background:#102515}
+  .nowrap{white-space:nowrap}
+  .muted{color:var(--muted)}
+  @media (max-width: 1024px){ main{grid-template-columns: 1fr}}
+</style>
+</head>
+<body>
+<header>
+  <span class="pill">YouTube 听力练习工具 · 本地存储</span>
+  <input id="urlInput" type="url" placeholder="粘贴 YouTube 链接，例如：https://www.youtube.com/watch?v=VIDEO_ID" />
+  <button id="loadBtn">加载视频</button>
+  <button id="markBtn" title="快捷键 T">添加时间点</button>
+  <button id="saveBtn">保存当前数据</button>
+  <span id="status" class="small"></span>
+</header>
+
+<main>
+  <section class="card">
+    <header>播放器与时间点</header>
+    <div class="content">
+      <div id="playerWrap"><div id="player"></div></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="tryCaption">尝试自动获取英文字幕</button>
+        <button class="btn" id="clearPoints">清空时间点</button>
+        <button class="btn" id="exportPoints">导出时间点 CSV</button>
+        <span class="small">快捷键：<span class="kbd">T</span> 添加时间点 · <span class="kbd">S</span> 保存选中词组</span>
+      </div>
+      <div id="points" class="segments" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>字幕与学习清单</header>
+    <div class="content">
+      <div class="row">
+        <button class="btn" id="pasteToggle">我来手动粘贴字幕</button>
+        <button class="btn" id="exportLex">导出学习清单 CSV</button>
+        <button class="btn danger" id="clearLex">清空学习清单</button>
+        <span class="right small muted">Tips：在下方字幕区用鼠标拖拽选中，按 <span class="kbd">S</span> 或点“保存选中词组”。</span>
+      </div>
+      <div id="pasteArea" style="display:none;margin-top:8px">
+        <textarea id="manualCaption" placeholder="在此粘贴字幕文本（可含时间轴，我们会尝试清洗为纯文本）"></textarea>
+        <div class="row">
+          <button class="btn success" id="useManual">使用以上字幕</button>
+          <span class="small muted">支持直接粘贴 YouTube transcript 或其他字幕文本</span>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:8px">
+        <button class="btn" id="saveSelection">保存选中词组</button>
+        <input id="selNote" type="text" placeholder="可选：给本次选中加备注（如词性、释义等）" />
+      </div>
+
+      <div class="row" style="margin-top:8px">
+        <div class="tag">模式：<span id="capMode">尚未加载</span></div>
+        <div class="tag">语言：<span id="capLang">-</span></div>
+        <div class="tag">段落：<span id="capCount">0</span></div>
+      </div>
+
+      <div id="captionSegments" class="segments" style="margin-top:8px"></div>
+
+      <h3 style="margin:14px 4px 4px">学习清单</h3>
+      <div class="segments" style="max-height:none">
+        <table id="lexTable">
+          <thead>
+            <tr>
+              <th style="width:24%">词/词组</th>
+              <th>上下文</th>
+              <th class="nowrap">时间</th>
+              <th style="width:24%">备注</th>
+              <th class="nowrap">操作</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+    </div>
+  </section>
+</main>
+
+<!-- YouTube IFrame API -->
+<script>
+  let player, videoId = "", state = {
+    points: [],         // {t, label}
+    captions: [],       // {start, dur, text, plain}
+    plainText: "",      // 整体无时间轴文本
+    lex: []             // 学习清单 {term, ctx, t, note}
+  };
+
+  // --- 工具函数 ---
+  const $ = s => document.querySelector(s);
+  const fmt = s => s.toString().padStart(2,'0');
+  function secToHMS(sec){
+    sec = Math.max(0, Math.floor(sec||0));
+    const h = Math.floor(sec/3600);
+    const m = Math.floor((sec%3600)/60);
+    const s2 = sec%60;
+    return (h>0? `${h}:${fmt(m)}:${fmt(s2)}` : `${m}:${fmt(s2)}`);
+  }
+  function parseVideoId(url){
+    try{
+      const u = new URL(url);
+      if(u.hostname.includes('youtu.be')) return u.pathname.slice(1);
+      if(u.searchParams.get('v')) return u.searchParams.get('v');
+      // embed/VIDEO_ID
+      const parts = u.pathname.split('/');
+      const idx = parts.indexOf('embed');
+      if(idx>=0 && parts[idx+1]) return parts[idx+1];
+    }catch{}
+    return url; // 兜底：直接当作 ID
+  }
+  function saveLocal(){
+    if(!videoId) return;
+    localStorage.setItem(`ytl:${videoId}`, JSON.stringify(state));
+    setStatus("已保存到本地。");
+  }
+  function loadLocal(id){
+    const raw = localStorage.getItem(`ytl:${id}`);
+    if(!raw) return;
+    try{
+      state = JSON.parse(raw);
+      renderPoints();
+      renderCaptions();
+      renderLex();
+    }catch{}
+  }
+  function setStatus(msg){ $('#status').textContent = msg || ""; }
+
+  // --- 初始化 YouTube IFrame API ---
+  // 动态注入 API 脚本
+  (function loadYT(){
+    const tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+  })();
+
+  window.onYouTubeIframeAPIReady = function(){
+    player = new YT.Player('player', {
+      height: '100%',
+      width: '100%',
+      videoId: '',
+      playerVars: { rel:0, modestbranding:1, enablejsapi:1, cc_load_policy:0 },
+    });
+  };
+
+  // --- UI 渲染 ---
+  function renderPoints(){
+    const box = $('#points'); box.innerHTML = "";
+    if(!state.points.length){ box.innerHTML = `<div class="small muted" style="padding:8px 10px">暂无时间点。点击“添加时间点”或按 T。</div>`; return; }
+    state.points.forEach((p,i)=>{
+      const div = document.createElement('div'); div.className = 'seg';
+      div.innerHTML = `
+        <span class="ts">⏱ ${secToHMS(p.t)}</span>
+        <span>${escapeHTML(p.label||"未命名标注")}</span>
+        <span class="right" style="float:right">
+          <button class="btn" data-j="${i}">跳转</button>
+          <button class="btn danger" data-d="${i}">删除</button>
+        </span>
+      `;
+      box.appendChild(div);
+    });
+  }
+
+  function renderCaptions(){
+    $('#capCount').textContent = state.captions.length;
+    const mode = state.captions.length ? '自动/手动字幕' : '未加载';
+    $('#capMode').textContent = mode;
+    const container = $('#captionSegments'); container.innerHTML = "";
+    if(!state.captions.length){
+      container.innerHTML = `<div class="small muted" style="padding:8px 10px">尚无字幕。可点击“尝试自动获取英文字幕”，或“我来手动粘贴字幕”。</div>`;
+      return;
+    }
+    state.captions.forEach((c, i)=>{
+      const div = document.createElement('div'); div.className = 'seg'; div.dataset.idx = i;
+      div.innerHTML = `<span class="ts">🗣 ${secToHMS(c.start||0)}</span><span>${escapeHTML(c.text)}</span>`;
+      container.appendChild(div);
+    });
+  }
+
+  function renderLex(){
+    const tbody = $('#lexTable tbody'); tbody.innerHTML = "";
+    if(!state.lex.length){
+      tbody.innerHTML = `<tr><td colspan="5" class="muted">暂无条目。先在字幕中划词，然后点击“保存选中词组”（或按 S）。</td></tr>`;
+      return;
+    }
+    state.lex.forEach((x,i)=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${escapeHTML(x.term)}</td>
+        <td>${escapeHTML(x.ctx)}</td>
+        <td class="nowrap">${x.t? secToHMS(x.t) : '-'}</td>
+        <td>${escapeHTML(x.note||'')}</td>
+        <td>
+          <button class="btn" data-leap="${i}">跳转</button>
+          <button class="btn danger" data-del="${i}">删除</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function escapeHTML(s=''){ return s.replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+
+  // --- 事件绑定 ---
+  $('#loadBtn').addEventListener('click', ()=>{
+    const raw = $('#urlInput').value.trim();
+    if(!raw) return setStatus('请先粘贴链接');
+    videoId = parseVideoId(raw);
+    setStatus('已解析视频 ID：' + videoId);
+    if(player && player.loadVideoById) player.loadVideoById(videoId);
+    // 新视频初始化 / 载入历史
+    state = { points:[], captions:[], plainText:"", lex:[] };
+    loadLocal(videoId);
+    renderPoints(); renderCaptions(); renderLex();
+  });
+
+  $('#markBtn').addEventListener('click', addPoint);
+  function addPoint(){
+    if(!player || !player.getCurrentTime) return;
+    const t = Math.floor(player.getCurrentTime());
+    const label = prompt('为该时间点添加备注（可留空）：', '');
+    state.points.push({t, label: label||""});
+    renderPoints(); saveLocal();
+  }
+
+  $('#points').addEventListener('click', (e)=>{
+    const j = e.target.getAttribute('data-j');
+    const d = e.target.getAttribute('data-d');
+    if(j!==null){
+      const p = state.points[+j]; if(p && player && player.seekTo){ player.seekTo(p.t, true); }
+      return;
+    }
+    if(d!==null){
+      state.points.splice(+d,1); renderPoints(); saveLocal();
+    }
+  });
+
+  // 尝试抓取英文字幕（人工 -> 自动）
+  $('#tryCaption').addEventListener('click', async ()=>{
+    if(!videoId) return setStatus('请先加载视频');
+    setStatus('尝试获取英文字幕…');
+    const tryUrls = [
+      `https://video.google.com/timedtext?lang=en&v=${videoId}`,
+      `https://video.google.com/timedtext?lang=en&kind=asr&v=${videoId}`
+    ];
+    for(const url of tryUrls){
+      try{
+        const res = await fetch(url);
+        if(!res.ok) continue;
+        const text = await res.text();
+        const parsed = parseTimedTextXML(text);
+        if(parsed.length){
+          state.captions = parsed;
+          $('#capLang').textContent = 'en';
+          setStatus('已加载字幕。可在字幕区划词加入学习清单。');
+          renderCaptions(); saveLocal();
+          return;
+        }
+      }catch(err){
+        // 可能被 CORS 阻止，进入下一种尝试
+      }
+    }
+    setStatus('未能自动获取字幕（可能无英文轨或被跨域阻止）。请点击“我来手动粘贴字幕”。');
+  });
+
+  // 手动粘贴字幕
+  $('#pasteToggle').addEventListener('click', ()=>{
+    const area = $('#pasteArea');
+    area.style.display = area.style.display==='none' ? 'block' : 'none';
+  });
+  $('#useManual').addEventListener('click', ()=>{
+    const raw = $('#manualCaption').value.trim();
+    if(!raw) return setStatus('请先粘贴字幕文本');
+    const parsed = parseAnyCaption(raw);
+    state.captions = parsed;
+    $('#capLang').textContent = 'n/a';
+    setStatus('已载入手动字幕。');
+    renderCaptions(); saveLocal();
+  });
+
+  // 划词保存
+  $('#saveSelection').addEventListener('click', saveSelection);
+  function saveSelection(){
+    const sel = window.getSelection();
+    const term = (sel && sel.toString().trim()) || "";
+    if(!term) return setStatus('未选中文本');
+    // 寻找上下文：包含该选择的段落
+    let ctx = "";
+    let t = null;
+    if(sel.rangeCount){
+      const node = sel.anchorNode && sel.anchorNode.parentElement;
+      const seg = node && node.closest('.seg');
+      if(seg){
+        ctx = seg.innerText.replace(/^🗣\s*\d+:\d+\s*/,'').trim();
+        const idx = +seg.dataset.idx;
+        if(!isNaN(idx) && state.captions[idx]) t = Math.floor(state.captions[idx].start || 0);
+      }else{
+        // 若不在段落中，退化为整体纯文本
+        ctx = (state.plainText || state.captions.map(x=>x.text).join(' ')).slice(0,300);
+      }
+    }
+    const note = $('#selNote').value.trim();
+    state.lex.push({term, ctx, t, note});
+    $('#selNote').value = "";
+    renderLex(); saveLocal();
+    setStatus('已加入学习清单：' + term);
+  }
+
+  // 学习清单操作
+  $('#lexTable').addEventListener('click', (e)=>{
+    const leap = e.target.getAttribute('data-leap');
+    const del = e.target.getAttribute('data-del');
+    if(leap!==null){
+      const item = state.lex[+leap];
+      if(item && typeof item.t==='number' && player && player.seekTo) player.seekTo(item.t, true);
+    }
+    if(del!==null){
+      state.lex.splice(+del,1); renderLex(); saveLocal();
+    }
+  });
+  $('#exportLex').addEventListener('click', ()=>{
+    const csv = toCSV([['term','context','time','note']].concat(
+      state.lex.map(x=>[x.term, x.ctx, x.t!=null?secToHMS(x.t):'', x.note||''])
+    ));
+    download(csv, `lex_${videoId||'unknown'}.csv`, 'text/csv');
+  });
+  $('#clearLex').addEventListener('click', ()=>{
+    if(confirm('确定清空学习清单？')){ state.lex = []; renderLex(); saveLocal(); }
+  });
+
+  // 时间点导出/清空
+  $('#exportPoints').addEventListener('click', ()=>{
+    const csv = toCSV([['time','label']].concat(
+      state.points.map(p=>[secToHMS(p.t), p.label||''])
+    ));
+    download(csv, `points_${videoId||'unknown'}.csv`, 'text/csv');
+  });
+  $('#clearPoints').addEventListener('click', ()=>{
+    if(confirm('确定清空时间点？')){ state.points = []; renderPoints(); saveLocal(); }
+  });
+
+  // 保存
+  $('#saveBtn').addEventListener('click', saveLocal);
+
+  // 快捷键
+  document.addEventListener('keydown', (e)=>{
+    if(e.target && ['INPUT','TEXTAREA'].includes(e.target.tagName)) return; // 在输入框中不拦截
+    if(e.key.toLowerCase()==='t'){ e.preventDefault(); addPoint(); }
+    if(e.key.toLowerCase()==='s'){ e.preventDefault(); saveSelection(); }
+  });
+
+  // 点击字幕段跳转
+  $('#captionSegments').addEventListener('click', (e)=>{
+    const seg = e.target.closest('.seg'); if(!seg) return;
+    const idx = +seg.dataset.idx;
+    if(!isNaN(idx) && state.captions[idx] && player && player.seekTo){
+      player.seekTo(Math.floor(state.captions[idx].start||0), true);
+    }
+  });
+
+  // --- 字幕解析 ---
+  function parseTimedTextXML(xmlText){
+    // 解析 YouTube timedtext XML: <transcript><text start="0.12" dur="1.23">Hello</text>…</transcript>
+    const out = [];
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xmlText, "text/xml");
+    const nodes = doc.getElementsByTagName('text');
+    for(const node of nodes){
+      const start = parseFloat(node.getAttribute('start')||'0')||0;
+      const dur = parseFloat(node.getAttribute('dur')||'0')||0;
+      let text = node.textContent || '';
+      text = text.replace(/\s+/g,' ').trim();
+      if(text) out.push({start, dur, text});
+    }
+    // 生成无时间轴纯文本（简单拼接并做句子合并）
+    state.plainText = out.map(x=>x.text).join(' ').replace(/\s+/g,' ').trim();
+    return out;
+  }
+
+  // 尝试从任意文本中抽取字幕行 -> 标准结构
+  function parseAnyCaption(raw){
+    // 1) 若是 XML
+    if(raw.trim().startsWith('<')){
+      try{ return parseTimedTextXML(raw); }catch{}
+    }
+    // 2) 去除常见时间戳（00:00:00 或 0:12 或 00:12.345）
+    const lines = raw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean).map(s=>{
+      s = s.replace(/^\d+\s*$/,''); // 去除 SRT 索引行
+      s = s.replace(/^(\d{1,2}:)?\d{1,2}:\d{2}([.,]\d+)?\s*-->\s*(\d{1,2}:)?\d{1,2}:\d{2}([.,]\d+)?$/,''); // 去掉 SRT 时间轴行
+      s = s.replace(/^(\d{1,2}:)?\d{1,2}:\d{2}([.,]\d+)?\s*/,''); // 行首时间戳
+      return s.trim();
+    }).filter(Boolean);
+    const text = lines.join(' ').replace(/\s+/g,' ').trim();
+    state.plainText = text;
+    // 简单切句为段
+    const segs = text.split(/(?<=[.!?])\s+(?=[A-Z0-9])/).map(x=>x.trim()).filter(Boolean)
+      .map(x=>({start:null, dur:null, text:x}));
+    return segs;
+  }
+
+  // --- 导出工具 ---
+  function toCSV(rows){
+    return rows.map(r=>r.map(cell=>{
+      const s = (cell==null?'':String(cell)).replace(/"/g,'""');
+      return `"${s}"`;
+    }).join(',')).join('\r\n');
+  }
+  function download(content, filename, type='text/plain'){
+    const blob = new Blob([content], {type});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+    URL.revokeObjectURL(a.href);
+  }
+</script>
+</body>
+</html>
