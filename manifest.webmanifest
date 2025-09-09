@@ -23,17 +23,5 @@
       "type": "image/png",
       "purpose": "maskable any"
     }
-  ],
-  "shortcuts": [
-    {
-      "name": "打开学习清单",
-      "short_name": "清单",
-      "url": "./?view=list"
-    },
-    {
-      "name": "粘贴字幕",
-      "short_name": "字幕",
-      "url": "./?action=paste"
-    }
   ]
 }
