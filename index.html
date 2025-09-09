@@ -2,8 +2,8 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>YouTube 听力练习（iOS 安装版 · v3）</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+<title>YT Study（iOS 安装版 · v5）</title>
 
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#0b0d10">
@@ -15,112 +15,103 @@
   /* Theme variables (follow system) */
   :root {
     --bg:#0b0d10; --panel:#12161b; --muted:#98a2b3; --text:#e6edf3; --accent:#4da3ff;
-    --border:#1f2630; --warn:#f59e0b; --danger:#ef4444;
+    --border:#1f2630; --danger:#ef4444;
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
   }
   @media (prefers-color-scheme: light) {
     :root {
       --bg:#f6f7fb; --panel:#ffffff; --muted:#667085; --text:#0b1321; --accent:#2b7cff;
-      --border:#e5e7eb; --warn:#d97706; --danger:#dc2626;
+      --border:#e5e7eb; --danger:#dc2626;
     }
   }
 
   *{box-sizing:border-box}
+  html, body { height: 100%; }
   body{
     margin:0;
     padding-top: calc(var(--safe-top) + 8px); /* notch spacing */
-    font:14px/1.5 -apple-system,system-ui,Segoe UI,Roboto,PingFang SC,Microsoft YaHei,sans-serif;
+    font:16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif; /* >=16px to prevent iOS zoom */
     background:var(--bg); color:var(--text);
   }
-  header,main{max-width:1200px;margin:0 auto;padding:12px}
+  header,main{max-width:1100px;margin:0 auto;padding:12px}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  input{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 12px;outline:0}
-  input[type="text"]{flex:1 1 420px}
-  input[type="number"]{width:90px}
-  button{background:var(--accent);color:#001b33;border:none;border-radius:10px;padding:10px 12px;font-weight:600}
+  .row.tight{gap:6px}
+  input{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 12px;outline:0;font-size:16px}
+  input[type="text"]{flex:1 1 520px}
+  input[type="number"]{width:100px}
+  button{background:var(--accent);color:#001b33;border:none;border-radius:10px;padding:10px 12px;font-weight:700;font-size:16px}
   button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
-  button.muted{background:#222b36;color:#cbd5e1;border:1px solid #2b3643}
-  @media (prefers-color-scheme: light){ button.muted{ background:#eef2ff; color:#1e293b; border:1px solid #c7d2fe; } }
   button.danger{background:var(--danger);color:#2d0a0a}
-  .tag{display:inline-block;font-size:12px;padding:2px 6px;border:1px solid var(--border);border-radius:999px;color:var(--muted)}
+  .grid{display:grid;gap:12px;grid-template-columns:1fr}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
 
   /* Sticky player */
   .sticky { position: sticky; top: calc(var(--safe-top) + 8px); z-index: 20; }
   #playerWrap{aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden;position:relative}
 
-  .pill{padding:6px 10px;border-radius:999px;background:#0f1720;border:1px solid #263142;color:#b9c3d0}
-  @media (prefers-color-scheme: light){ .pill{ background:#f4f7ff; border:1px solid #cbd5e1; color:#334155; } }
-  .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
-  .list{display:flex;flex-direction:column;gap:8px;max-height:420px;overflow:auto}
-  .item{border:1px dashed var(--border);border-radius:10px;padding:8px;display:grid;gap:6px}
-  .time{font-weight:700;color:var(--accent);cursor:pointer}
-  .tiny{font-size:12px;color:var(--muted)}
-  .banner{background:rgba(27,37,51,.7);border:1px solid var(--border);color:#d7e3f4;padding:8px 10px;border-radius:10px;margin:8px 0}
-  @media (prefers-color-scheme: light){ .banner{ background:#eef2ff; color:#1e293b; } }
+  /* Timestamp list */
+  .list{display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow:auto}
+  .item{border:1px dashed var(--border);border-radius:10px;padding:8px;display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
+  .item .del{width:32px;height:32px;border-radius:16px;background:transparent;border:1px solid var(--danger);color:var(--danger);font-weight:900;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .item .note{width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:16px}
+  .item .timebtn{padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--accent);font-weight:700;cursor:pointer;white-space:nowrap}
+  .item .note-ghost{display:none;padding:8px 10px;border-radius:8px;border:1px dashed var(--border);background:transparent;color:var(--muted);font-size:14px;cursor:pointer}
 
-  /* Hide notes toggle */
-  body[data-hide-notes="1"] .item input.note { display: none; }
-  body[data-hide-notes="1"] .item .tiny.note-hint { display: inline; }
-  .item .tiny.note-hint { display: none; }
+  /* Hide Notes toggle */
+  body[data-hide-notes="1"] .item .note { display:none; }
+  body[data-hide-notes="1"] .item .note-ghost { display:block; }
+  body[data-hide-notes="1"] .item { grid-template-columns:auto 1fr auto; }
+  .item.peek .note { display:block !important; }
+  .item.peek .note-ghost { display:none !important; }
 
-  /* Floating action button */
-  #fabAdd{
-    position: fixed; right: 16px; bottom: calc(var(--safe-bottom) + 16px);
-    z-index: 50; width:56px; height:56px; border-radius:28px; font-size:20px;
-    display:flex; align-items:center; justify-content:center;
-    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  /* Floating buttons: back, add, forward (stacked) */
+  .fab{position: fixed; right: 16px; z-index: 50; width:56px; height:56px; border-radius:28px; font-size:20px;
+       display:flex; align-items:center; justify-content:center; box-shadow:0 8px 24px rgba(0,0,0,.35);}
+  #fabAdd{ bottom: calc(var(--safe-bottom) + 16px); background:var(--accent); color:#001b33; }
+  #fabBack{ bottom: calc(var(--safe-bottom) + 16px + 56px + 12px); background:#1f2a37; color:#e2e8f0; border:1px solid var(--border);}
+  #fabFwd{ bottom: calc(var(--safe-bottom) + 16px + (56px + 12px)*2); background:#1f2a37; color:#e2e8f0; border:1px solid var(--border);}
+  @media (prefers-color-scheme: light){
+    #fabBack,#fabFwd{ background:#eef2ff; color:#1e293b; border:1px solid #c7d2fe; }
   }
+
+  .tiny{font-size:12px;color:var(--muted)}
 </style>
 </head>
 <body>
 <header class="card sticky">
-  <h2 style="margin:0 0 6px 0;">YouTube 听力练习 <span class="tag">iOS 安装版 v3（随系统主题）</span></h2>
-  <div id="fileWarn" class="banner" style="display:none">
-    建议从 <b>https</b> 打开（GitHub Pages 默认），不要用 <code>file://</code>，否则 YouTube 播放器无法工作。
-  </div>
-  <div class="row">
+  <div id="playerWrap"><div id="player"></div></div>
+  <div class="row tight" style="margin-top:10px">
     <input id="url" type="text" placeholder="粘贴 YouTube 链接，例如 https://www.youtube.com/watch?v=dQw4w9WgXcQ" />
     <button id="loadBtn">Load</button>
-    <button id="toggleNotes" class="ghost">隐藏备注：关</button>
     <label class="tiny">倒退秒数</label>
     <input id="backseek" type="number" min="0" step="1" value="3" />
+    <button id="toggleNotes" class="ghost">隐藏备注：关</button>
     <button id="exportMD" class="ghost">导出 Markdown</button>
-  </div>
-  <div id="playerWrap"><div id="player"></div></div>
-  <div class="row" style="margin-top:10px;flex-wrap:wrap">
-    <span class="pill mono">当前：<span id="curTime">0:00</span></span>
-    <span class="pill mono">视频ID：<span id="vidLabel">-</span></span>
+    <span class="tiny">当前 <span id="curTime">0:00</span></span>
   </div>
 </header>
 
 <main>
   <section class="card">
     <h3>时间点</h3>
-    <div class="row" style="gap:6px;margin-bottom:6px">
-      <button id="jumpBack" class="muted">⟲ -5s</button>
-      <button id="jumpFwd" class="muted">⟲ +5s</button>
-      <span class="tiny">点击时间戳将从所设“倒退秒数”位置开始播放</span>
-    </div>
     <div class="list" id="timeList"></div>
-    <div class="row" style="margin-top:8px">
-      <button id="exportCSV" class="ghost">导出 CSV</button>
-      <button id="exportJSON" class="ghost">导出 JSON</button>
-      <button id="copyAll" class="muted">复制到剪贴板</button>
-      <button id="clearAll" class="danger">清空</button>
-    </div>
   </section>
 </main>
 
-<button id="fabAdd" title="记录时间点">＋</button>
+<!-- Floating Buttons -->
+<button id="fabFwd" class="fab" title="快进 +5s">＋5</button>
+<button id="fabAdd" class="fab" title="记录时间点">＋</button>
+<button id="fabBack" class="fab" title="后退 -5s">−5</button>
 
 <script>
-/* ---------- 工具 ---------- */
+/* ---------- Utils ---------- */
 const $=s=>document.querySelector(s);
 const fmtTime=s=>{s=Math.max(0,Math.floor(s||0));const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return (h?(h+':'):'')+(h?String(m).padStart(2,'0'):m)+':'+String(sec).padStart(2,'0')};
 const parseVideoId=u=>{try{if(!u)return'';const x=new URL(u);if(x.hostname.includes('youtu.be'))return x.pathname.slice(1);if(x.searchParams.get('v'))return x.searchParams.get('v');if(x.pathname.startsWith('/shorts/'))return x.pathname.split('/')[2]||'';return''}catch(e){return u}};
-const isHttp=location.protocol.startsWith('http'); if(!isHttp) $('#fileWarn').style.display='block';
+const isHttp=location.protocol.startsWith('http');
 
+/* ---------- Clipboard ---------- */
 async function copyText(t){
   try{ if(navigator.clipboard && isHttp){ await navigator.clipboard.writeText(t); return true; } }catch(e){}
   const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta);
@@ -133,86 +124,95 @@ function onYouTubeIframeAPIReady(){
   player=new YT.Player('player',{
     width:'100%',height:'100%',
     videoId:'',
-    playerVars:{ playsinline:1, cc_load_policy:1, enablejsapi:1, origin: isHttp?location.origin:undefined },
+    playerVars:{
+      playsinline:1, cc_load_policy:1, enablejsapi:1,
+      origin: isHttp?location.origin:undefined,
+      modestbranding:1, rel:0, iv_load_policy:3, fs:1
+    },
     events:{ onReady:onPlayerReady }
   });
 }
 function onPlayerReady(){ timeTick=setInterval(()=>{ if(player && player.getCurrentTime){ $('#curTime').textContent=fmtTime(player.getCurrentTime()); }},300); }
 (function loadYT(){ const s=document.createElement('script'); s.src="https://www.youtube.com/iframe_api"; document.head.appendChild(s); })();
 
-/* ---------- 状态 ---------- */
+/* ---------- State ---------- */
 const storeKeyGlobal=k=>`ytstudy:${k}`;
 const storeKey=k=>`ytstudy:${currentVideoId}:${k}`;
 let timeMarks=[];
 function saveState(){ if(!currentVideoId) return; localStorage.setItem(storeKey('timeMarks'),JSON.stringify(timeMarks)); }
 function loadState(){ timeMarks=JSON.parse(localStorage.getItem(storeKey('timeMarks'))||'[]'); renderTimeMarks(); }
 
-// backseek seconds
 function getBackseek(){ return parseInt(localStorage.getItem(storeKeyGlobal('backseek'))||'3',10) || 0; }
 function setBackseek(v){ localStorage.setItem(storeKeyGlobal('backseek'), String(Math.max(0, Math.floor(v||0)))); }
 
-/* ---------- 时间点 ---------- */
+/* ---------- Timestamps UI ---------- */
 function renderTimeMarks(){
   const box=$('#timeList'); box.innerHTML='';
   timeMarks.sort((a,b)=>a.t-b.t).forEach((m,i)=>{
     const d=document.createElement('div'); d.className='item';
-    d.innerHTML=`<div class="row"><span class="time" data-i="${i}">⏱ ${fmtTime(m.t)}</span>
-      <button data-i="${i}" class="muted small">播放</button><button data-i="${i}" class="danger small">删除</button></div>
-      <input class="note" data-i="${i}" value="${(m.label||'').replace(/"/g,'&quot;')}" placeholder="备注（可编辑，亦可留空）"/>
-      <div class="tiny note-hint">（备注已隐藏）</div>`;
+    d.innerHTML=`<button class="del" data-i="${i}" title="删除">×</button>
+      <input class="note" data-i="${i}" value="${(m.label||'').replace(/"/g,'&quot;')}" placeholder="备注（可编辑）" />
+      <div class="note-ghost" data-i="${i}">（备注已隐藏，轻点显示）</div>
+      <button class="timebtn" data-i="${i}">${fmtTime(m.t)}</button>`;
     box.appendChild(d);
   });
   const back = getBackseek();
-  box.querySelectorAll('span.time,button.small').forEach(el=> el.onclick=()=>{
-    const i=+el.getAttribute('data-i'); const m=timeMarks[i]; if(!m) return;
-    if(el.tagName==='SPAN'||el.textContent.includes('播放')){
-      const start = Math.max(0, (m.t||0) - back);
-      player&&player.seekTo&&player.seekTo(start,true); player&&player.playVideo&&player.playVideo();
-    } else if(el.textContent.includes('删除')){
-      timeMarks.splice(i,1); renderTimeMarks(); saveState();
-    }
+  // events
+  box.querySelectorAll('button.del').forEach(btn=> btn.onclick=()=>{
+    const i=+btn.getAttribute('data-i'); timeMarks.splice(i,1); renderTimeMarks(); saveState();
   });
-  box.querySelectorAll('input.note').forEach(inp=> inp.oninput=()=>{ const i=+inp.getAttribute('data-i'); if(timeMarks[i]){ timeMarks[i].label=inp.value; saveState(); }});
+  box.querySelectorAll('button.timebtn').forEach(btn=> btn.onclick=()=>{
+    const i=+btn.getAttribute('data-i'); const m=timeMarks[i]; if(!m) return;
+    const start=Math.max(0,(m.t||0)-back); player?.seekTo?.(start,true); player?.playVideo?.();
+  });
+  box.querySelectorAll('input.note').forEach(inp=> inp.oninput=()=>{
+    const i=+inp.getAttribute('data-i'); if(timeMarks[i]){ timeMarks[i].label=inp.value; saveState(); }
+  });
+  // peek on ghost click
+  box.querySelectorAll('.note-ghost').forEach(el=> el.onclick=()=>{
+    const i=+el.getAttribute('data-i'); const item=el.closest('.item');
+    if(!item) return;
+    item.classList.add('peek');
+    // auto-hide after 6s
+    setTimeout(()=> item.classList.remove('peek'), 6000);
+  });
 }
 
-/* ---------- 加载视频 ---------- */
+/* ---------- Load video ---------- */
 $('#loadBtn').onclick=()=>{
   const id=parseVideoId($('#url').value.trim()); if(!id){ alert('请粘贴有效的链接'); return; }
-  currentVideoId=id; $('#vidLabel').textContent=id;
+  currentVideoId=id;
   player.loadVideoById(id);
   timeMarks=[]; renderTimeMarks(); saveState(); loadState();
-  // set backseek input from storage
   $('#backseek').value = getBackseek();
 };
 
-/* ---------- 控制与 FAB ---------- */
+/* ---------- FABs ---------- */
 function addTimestamp(){ const t=Math.floor(player?.getCurrentTime?.()||0); timeMarks.push({t,label:''}); renderTimeMarks(); saveState(); }
 $('#fabAdd').onclick=addTimestamp;
-$('#jumpBack').onclick=()=>{ const t=(player?.getCurrentTime?.()||0)-5; player.seekTo(Math.max(0,t),true); };
-$('#jumpFwd').onclick=()=>{ const t=(player?.getCurrentTime?.()||0)+5; player.seekTo(t,true); };
+$('#fabBack').onclick=()=>{ const t=(player?.getCurrentTime?.()||0)-5; player.seekTo(Math.max(0,t),true); };
+$('#fabFwd').onclick=()=>{ const t=(player?.getCurrentTime?.()||0)+5; player.seekTo(t,true); };
 
-// toggle notes
+/* ---------- Notes toggle ---------- */
 $('#toggleNotes').onclick=()=>{
   const cur = document.body.getAttribute('data-hide-notes') === '1';
   document.body.setAttribute('data-hide-notes', cur ? '0' : '1');
   $('#toggleNotes').textContent = (cur ? '隐藏备注：关' : '隐藏备注：开');
 };
 
-// backseek setting
+/* ---------- Backseek setting ---------- */
 $('#backseek').addEventListener('change', e=>{
-  const v = parseInt(e.target.value||'0',10) || 0;
-  setBackseek(v);
-  e.target.value = getBackseek();
+  const v = parseInt(e.target.value||'0',10) || 0; setBackseek(v); e.target.value = getBackseek();
 });
 
-/* ---------- 导出（无生词） ---------- */
+/* ---------- Markdown Export ---------- */
 function youtubeJumpUrl(id, sec){ return `https://youtu.be/${id}?t=${sec}`; }
 function mdEscape(s=''){ return String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function buildMarkdown(){
   const vid = currentVideoId || parseVideoId(document.getElementById('url').value.trim()) || 'video';
   const videoUrl = document.getElementById('url').value.trim() || `https://youtu.be/${vid}`;
   const nowISO = new Date().toISOString().slice(0,10);
-  let md = `# YouTube 听力练习：${vid}\n\n`;
+  let md = `# YouTube 听力练习\n\n`;
   md += `- **日期**：${nowISO}\n`;
   md += `- **视频链接**：${videoUrl}\n`;
   md += `- **倒退秒数**：${getBackseek()}s\n\n`;
@@ -234,28 +234,9 @@ async function exportMarkdown(){
 }
 document.getElementById('exportMD').addEventListener('click', exportMarkdown);
 
-$('#exportCSV').onclick=()=>{
-  const rows=[['time','label']];
-  timeMarks.forEach(m=>rows.push([fmtTime(m.t), m.label||'']));
-  const csv=rows.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const vid=currentVideoId||'video';
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download=vid+'_timestamps.csv'; a.click(); URL.revokeObjectURL(a.href);
-};
-$('#exportJSON').onclick=()=>{
-  const vid=currentVideoId||'video';
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify({videoId:vid,timeMarks,backseek:getBackseek()},null,2)],{type:'application/json'})); a.download=vid+'_timestamps.json'; a.click(); URL.revokeObjectURL(a.href);
-};
-$('#copyAll').onclick=async ()=>{
-  const md = buildMarkdown();
-  const ok=await copyText(md); if(ok) alert('已复制到剪贴板');
-};
-$('#clearAll').onclick=()=>{ if(!confirm('确定清空当前视频的时间点？')) return; timeMarks=[]; renderTimeMarks(); saveState(); };
-
-/* Save on unload */
-window.addEventListener('beforeunload',saveState);
-
-// Initialize backseek input value on first load
-document.addEventListener('DOMContentLoaded', ()=>{
+/* ---------- Init ---------- */
+window.addEventListener('DOMContentLoaded', ()=>{
+  if(!isHttp){ console.warn('请通过 HTTPS 打开，file:// 会导致播放器不可用'); }
   $('#backseek').value = getBackseek();
 });
 </script>
